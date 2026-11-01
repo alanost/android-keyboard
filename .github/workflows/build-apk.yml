@@ -57,7 +57,9 @@ jobs:
         id: apk
         run: |
           name="futo-replay-${{ github.run_number }}.apk"
-          cp build/outputs/apk/unstable/release/latinime-unstable-release.apk "$name"
+          found=$(find build/outputs/apk/unstable/release -name '*.apk')
+          test "$(echo "$found" | wc -l)" = 1
+          cp "$found" "$name"
           sha256sum "$name" > "$name.sha256"
           echo "name=$name" >> "$GITHUB_OUTPUT"
 
