@@ -44,17 +44,35 @@ def nodes():
     return ET.fromstring(shell("cat /sdcard/ui.xml")).iter("node")
 
 
-def tap_text(pattern, tries=6):
+def find_text(pattern):
+    for n in nodes():
+        if re.search(pattern, n.get("text", ""), re.I):
+            a, b, c, d = map(int, re.findall(r"\d+", n.get("bounds")))
+            return (a + c) // 2, (b + d) // 2
+    return None
+
+
+def tap_text(pattern, tries=8):
     for _ in range(tries):
-        for n in nodes():
-            if re.search(pattern, n.get("text", ""), re.I):
-                a, b, c, d = map(int, re.findall(r"\d+", n.get("bounds")))
-                shell(f"input tap {(a + c) // 2} {(b + d) // 2}")
-                time.sleep(1.5)
-                return
+        hit = find_text(pattern)
+        if hit:
+            shell(f"input tap {hit[0]} {hit[1]}")
+            time.sleep(1.5)
+            return
+        shell(f"input swipe {width // 2} {height * 3 // 4} {width // 2} {height // 3} 300")
         time.sleep(1)
     snap("ui")
     ok(False, f"Text auf dem Bildschirm gefunden: {pattern}")
+
+
+def open_prediction_settings():
+    shell(f"am start -n {SETTINGS}")
+    time.sleep(4)
+    notice = find_text(r"^dismiss$|^schlie.en$|^verwerfen$")
+    if notice:
+        shell(f"input tap {notice[0]} {notice[1]}")
+        time.sleep(1.5)
+    tap_text(r"text prediction|textvorhersage")
 
 
 def open_field(kind):
@@ -105,10 +123,8 @@ snap("keyboard_open")
 close_field()
 ok(remote_files() == [], "Standardmäßig aus: keine Datei ohne Einschalten")
 
-shell(f"am start -n {SETTINGS}")
-time.sleep(4)
+open_prediction_settings()
 snap("settings")
-tap_text(r"text prediction|textvorhersage")
 tap_text(r"Session-Replay aufzeichnen")
 snap("enabled")
 shell("input keyevent KEYCODE_HOME")
@@ -189,9 +205,7 @@ pull_dir = f"{art}/pulled"
 r = subprocess.run([os.path.join(os.path.dirname(__file__), "..", "pull.sh"), pull_dir], capture_output=True, text=True)
 ok(r.returncode == 0 and glob.glob(f"{pull_dir}/**/*.jsonl.gz", recursive=True), "pull.sh holt die Dateien ohne Root")
 
-shell(f"am start -n {SETTINGS}")
-time.sleep(3)
-tap_text(r"text prediction|textvorhersage")
+open_prediction_settings()
 tap_text(r"Aufzeichnungen löschen")
 time.sleep(2)
 ok(remote_files() == [], "Löschen entfernt alle Aufzeichnungen")
