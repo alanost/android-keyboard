@@ -41,7 +41,8 @@ def session(path, taps, words, stats):
                     keys.pop()
                 stats["backspace"] += 1
             elif ev["cp"] > 0:
-                keys.append([ev["cp"], ev["x"], ev["y"]])
+                if chr(ev["cp"]).isalnum():  # a separator is logged after the commit it causes
+                    keys.append([ev["cp"], ev["x"], ev["y"]])
                 r = rects.get(ev["cp"])
                 if r and ev["x"] >= 0:
                     taps.write(json.dumps({"ch": chr(ev["cp"]),

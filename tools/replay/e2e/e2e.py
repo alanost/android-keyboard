@@ -72,7 +72,13 @@ def open_prediction_settings():
     if notice:
         shell(f"input tap {notice[0]} {notice[1]}")
         time.sleep(1.5)
-    tap_text(r"text prediction|textvorhersage")
+    for _ in range(4):
+        if find_text(r"Aufzeichnungen l"):
+            return
+        tap_text(r"text prediction|textvorhersage")
+        time.sleep(2)
+    snap("prediction_settings")
+    ok(False, "Vorhersage-Einstellungen geöffnet")
 
 
 def open_field(kind):
@@ -206,7 +212,7 @@ r = subprocess.run([os.path.join(os.path.dirname(__file__), "..", "pull.sh"), pu
 ok(r.returncode == 0 and glob.glob(f"{pull_dir}/**/*.jsonl.gz", recursive=True), "pull.sh holt die Dateien ohne Root")
 
 open_prediction_settings()
-tap_text(r"Aufzeichnungen löschen")
+tap_text(r"Aufzeichnungen l")
 time.sleep(2)
 ok(remote_files() == [], "Löschen entfernt alle Aufzeichnungen")
 
