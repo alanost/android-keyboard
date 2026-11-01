@@ -40,8 +40,14 @@ def ok(cond, what):
 
 
 def nodes():
-    shell("uiautomator dump /sdcard/ui.xml >/dev/null")
-    return ET.fromstring(shell("cat /sdcard/ui.xml")).iter("node")
+    # uiautomator gives up while the screen is animating, so try a few times
+    for _ in range(6):
+        shell("rm -f /sdcard/ui.xml; uiautomator dump /sdcard/ui.xml >/dev/null 2>&1", check=False)
+        xml = shell("cat /sdcard/ui.xml 2>/dev/null", check=False)
+        if xml.strip():
+            return list(ET.fromstring(xml).iter("node"))
+        time.sleep(2)
+    return []
 
 
 def find_text(pattern):
