@@ -89,7 +89,12 @@ def open_prediction_settings():
 
 def open_field(kind):
     shell(f"am start -S -n {FIELDS} --es field {kind}")
-    time.sleep(3)
+    for _ in range(15):
+        time.sleep(1)
+        if "mInputShown=true" in shell("dumpsys input_method"):
+            time.sleep(1)
+            return
+    ok(False, f"Tastatur öffnet sich im Feld {kind}")
 
 
 def close_field():
@@ -119,6 +124,10 @@ def wait_for_file(known, seconds=15):
     return []
 
 
+# A slow emulator trips ANR dialogs in the launcher, which would swallow every tap.
+shell("settings put global hide_error_dialogs 1")
+shell("am force-stop com.google.android.apps.nexuslauncher", check=False)
+time.sleep(20)
 adb("install", "-r", "-g", apk)
 adb("install", "-r", "-g", fields)
 shell(f"ime enable {IME}")
