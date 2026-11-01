@@ -62,6 +62,7 @@ import org.futo.inputmethod.engine.general.WordLearner
 import org.futo.inputmethod.latin.SuggestedWords.SuggestedWordInfo
 import org.futo.inputmethod.latin.common.Constants
 import org.futo.inputmethod.latin.settings.Settings
+import org.futo.inputmethod.latin.replay.SessionRecorder
 import org.futo.inputmethod.latin.uix.BasicThemeProvider
 import org.futo.inputmethod.latin.uix.DataStoreHelper
 import org.futo.inputmethod.latin.uix.DynamicThemeProvider
@@ -629,12 +630,17 @@ class LatinIME : InputMethodServiceCompose(), LatinIMELegacy.SuggestionStripCont
         onSizeMaybeUpdated()
         imeManager.onStartInput()
         latinIMELegacy.onStartInputView(info, restarting)
+        SessionRecorder.startSession(this, info, restarting, RichInputMethodManager.getInstance().currentSubtypeLocale?.toString())
+        latinIMELegacy.mKeyboardSwitcher?.mainKeyboardView?.let { view ->
+            view.keyboard?.let { SessionRecorder.layout(view, it, true) }
+        }
         lifecycleScope.launch { uixManager.showUpdateNoticeIfNeeded() }
         updateColorsIfDynamicChanged()
         uixManager.updateEmojiTranslationsIfNeeded()
     }
 
     override fun onFinishInputView(finishingInput: Boolean) {
+        SessionRecorder.endSession("finish")
         super.onFinishInputView(finishingInput)
         latinIMELegacy.onFinishInputView(finishingInput)
         uixManager.onInputFinishing()
@@ -680,6 +686,7 @@ class LatinIME : InputMethodServiceCompose(), LatinIMELegacy.SuggestionStripCont
             candidatesEnd
         )
 
+        SessionRecorder.selection(oldSelStart, oldSelEnd, newSelStart, newSelEnd, candidatesStart, candidatesEnd)
         latinIMELegacy.onUpdateSelection(
             oldSelStart,
             oldSelEnd,

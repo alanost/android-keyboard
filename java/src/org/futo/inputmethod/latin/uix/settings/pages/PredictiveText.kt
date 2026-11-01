@@ -1,6 +1,9 @@
 package org.futo.inputmethod.latin.uix.settings.pages
 
 import android.content.Intent
+import android.widget.Toast
+import org.futo.inputmethod.latin.replay.SESSION_REPLAY_ENABLED
+import org.futo.inputmethod.latin.replay.SessionRecorder
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -27,6 +30,23 @@ val PredictiveTextMenu = UserSettingsMenu(
     title = R.string.prediction_settings_title,
     navPath = "predictiveText", registerNavPath = true,
     settings = listOf(
+        userSettingToggleDataStore(
+            title = R.string.replay_enabled_title,
+            subtitle = R.string.replay_enabled_subtitle,
+            setting = SESSION_REPLAY_ENABLED
+        ),
+
+        userSettingNavigationItem(
+            title = R.string.replay_delete_title,
+            subtitle = R.string.replay_delete_subtitle,
+            style = NavigationItemStyle.HomeSecondary,
+            icon = R.drawable.file_text,
+            navigate = { nav ->
+                val count = SessionRecorder.deleteAll(nav.context)
+                Toast.makeText(nav.context, nav.context.getString(R.string.replay_deleted_toast, count), Toast.LENGTH_SHORT).show()
+            }
+        ),
+
         userSettingToggleSharedPrefs(
             title = R.string.prediction_settings_transformer,
             key = Settings.PREF_KEY_USE_TRANSFORMER_LM,

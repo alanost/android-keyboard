@@ -16,6 +16,7 @@
 
 package org.futo.inputmethod.latin.inputlogic;
 
+import org.futo.inputmethod.latin.replay.SessionRecorder;
 import android.os.SystemClock;
 import android.text.SpannableString;
 import android.text.TextUtils;
@@ -436,6 +437,10 @@ public final class InputLogic {
             final int currentKeyboardScriptId) {
         final SuggestedWords suggestedWords = mSuggestedWords;
         final String suggestion = suggestionInfo.mWord;
+        if (SessionRecorder.isRecording()) {
+            SessionRecorder.pick(suggestion, suggestedWords.indexOf(suggestionInfo),
+                    mWordComposer.getTypedWord());
+        }
         // If this is a punctuation picked from the suggestion strip, pass it to onCodeInput
         if (suggestion.length() == 1 && suggestedWords.isPunctuationSuggestions()) {
             // We still want to log a suggestion click.
@@ -721,6 +726,11 @@ public final class InputLogic {
         updateUiInputState();
 
 
+        if (SessionRecorder.isRecording()) {
+            SessionRecorder.key(event, mWordComposer.getTypedWord(),
+                    mConnection.getTextBeforeCursor(SessionRecorder.textWindow(), 0),
+                    mConnection.getExpectedSelectionStart(), mConnection.getExpectedSelectionEnd());
+        }
         return inputTransaction;
     }
 
@@ -825,6 +835,9 @@ public final class InputLogic {
     // TODO: on the long term, this method should become private, but it will be difficult.
     // Especially, how do we deal with InputMethodService.onDisplayCompletions?
     public void setSuggestedWords(final SuggestedWords suggestedWords) {
+        if (SessionRecorder.isRecording()) {
+            SessionRecorder.suggestions(suggestedWords, mWordComposer.getTypedWord());
+        }
         if(mWordComposer.isComposingWord() && !suggestedWords.isEmpty()) {
             rememberSuggestedWords(mConnection.getExpectedSelectionStart() - mWordComposer.sizeBeforeCursor(),
                     mWordComposer.getTypedWord(), suggestedWords);
@@ -2201,6 +2214,7 @@ public final class InputLogic {
                 originallyTypedWord != null ? originallyTypedWord.toString() : "";
         final CharSequence committedWord = mLastComposedWord.mCommittedWord;
         final String committedWordString = committedWord.toString();
+        SessionRecorder.revert(originallyTypedWordString, committedWordString);
         final int cancelLength = committedWord.length();
         final String separatorString = mLastComposedWord.mSeparatorString;
         // If our separator is a space, we won't actually commit it,
@@ -2763,6 +2777,10 @@ public final class InputLogic {
      */
     private void commitChosenWord(final SettingsValues settingsValues, final String chosenWord,
             final int commitType, final String separatorString, final int importance) {
+        if (SessionRecorder.isRecording()) {
+            SessionRecorder.commit(mWordComposer.getTypedWord(), chosenWord, commitType,
+                    separatorString, mConnection.getTextBeforeCursor(SessionRecorder.textWindow(), 0));
+        }
         long startTimeMillis = 0;
         if (DebugFlags.DEBUG_ENABLED) {
             startTimeMillis = System.currentTimeMillis();

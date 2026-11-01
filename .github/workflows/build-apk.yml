@@ -1,0 +1,75 @@
+name: Build APK
+
+on:
+  push:
+    branches: [session-replay]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+          lfs: true
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: "platform-tools platforms;android-35 build-tools;35.0.0 ndk;28.2.13676358"
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.14.3"
+
+      - name: Set up signing
+        env:
+          KEYSTORE_B64: ${{ secrets.KEYSTORE_B64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+        run: |
+          echo "$KEYSTORE_B64" | base64 --decode > key.jks
+          {
+            echo "storePassword=$KEYSTORE_PASSWORD"
+            echo "keyPassword=$KEYSTORE_PASSWORD"
+            echo "keyAlias=replay"
+            echo "storeFile=key.jks"
+          } > keystore.properties
+
+      - name: Build
+        env:
+          VERSION_CODE: ${{ github.run_number }}
+          VERSION_NAME: 0.1.30-replay.${{ github.run_number }}
+        run: gradle assembleUnstableRelease -s --no-daemon
+
+      - name: Collect APK
+        id: apk
+        run: |
+          name="futo-replay-${{ github.run_number }}.apk"
+          cp build/outputs/apk/unstable/release/latinime-unstable-release.apk "$name"
+          sha256sum "$name" > "$name.sha256"
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.apk.outputs.name }}
+          path: futo-replay-*
+          retention-days: 30
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "replay-${{ github.run_number }}" futo-replay-*.apk futo-replay-*.sha256 \
+            --target "${{ github.sha }}" --prerelease \
+            --title "Session Replay build ${{ github.run_number }}" \
+            --notes "Modified FUTO Keyboard with local session replay. Based on 0.1.30."

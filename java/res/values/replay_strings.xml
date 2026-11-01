@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="replay_enabled_title" translatable="false">Session-Replay aufzeichnen</string>
+    <string name="replay_enabled_subtitle" translatable="false">Modifizierte FUTO-Version. Speichert Tipp-Koordinaten, Tasten, Text, Vorschläge und Korrekturen nur lokal auf diesem Gerät, fürs eigene Training. Passwort-, Zahlen- und Inkognito-Felder sowie Banking- und Passwort-Apps sind ausgeschlossen. Passwörter in normalen Textfeldern lassen sich aber nicht erkennen.</string>
+    <string name="replay_delete_title" translatable="false">Aufzeichnungen löschen</string>
+    <string name="replay_delete_subtitle" translatable="false">Entfernt alle gespeicherten Sitzungen sofort von diesem Gerät.</string>
+    <string name="replay_deleted_toast" translatable="false">%1$d Aufzeichnungen gelöscht</string>
+</resources>

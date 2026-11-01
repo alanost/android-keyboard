@@ -16,6 +16,7 @@
 
 package org.futo.inputmethod.keyboard;
 
+import org.futo.inputmethod.latin.replay.SessionRecorder;
 import android.animation.AnimatorInflater;
 import android.animation.ObjectAnimator;
 import android.content.Context;
@@ -395,6 +396,7 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
         // Remove any pending messages, except dismissing preview and key repeat.
         mTimerHandler.cancelLongPressTimers();
         super.setKeyboard(keyboard);
+        SessionRecorder.layout(this, keyboard, false);
         mKeyDetector.setKeyboard(
                 keyboard, -getPaddingLeft(), -getPaddingTop() + getVerticalCorrection());
         PointerTracker.setKeyDetector(mKeyDetector);
@@ -701,6 +703,7 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
         if (getKeyboard() == null) {
             return false;
         }
+        SessionRecorder.touch(this, event, "main");
         if (mNonDistinctMultitouchHelper != null) {
             if (event.getPointerCount() > 1 && mTimerHandler.isInKeyRepeat()) {
                 // Key repeating timer will be canceled if 2 or more keys are in action.

@@ -16,6 +16,7 @@
 
 package org.futo.inputmethod.keyboard;
 
+import org.futo.inputmethod.latin.replay.SessionRecorder;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.Canvas;
@@ -295,6 +296,7 @@ public class MoreKeysKeyboardView extends KeyboardView implements MoreKeysPanel 
 
     @Override
     public boolean onTouchEvent(final MotionEvent me) {
+        SessionRecorder.touch(this, me, "more");
         final int action = me.getActionMasked();
         final long eventTime = me.getEventTime();
         final int index = me.getActionIndex();
