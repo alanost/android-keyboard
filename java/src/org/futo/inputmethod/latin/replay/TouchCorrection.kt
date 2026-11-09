@@ -16,7 +16,7 @@ import kotlin.math.roundToInt
 
 val TOUCH_CORRECTION_ENABLED = SettingsKey(booleanPreferencesKey("touchCorrectionEnabled"), false)
 
-/** How far the user lands from the key centre, in percent of the key pitch; positive = right of / below. */
+/** How far the user lands from the key centre, in percent of the key size; positive = right of / below. */
 val TOUCH_CORRECTION_DX = SettingsKey(intPreferencesKey("touchCorrectionDx"), 0)
 val TOUCH_CORRECTION_DY = SettingsKey(intPreferencesKey("touchCorrectionDy"), 0)
 
@@ -25,15 +25,16 @@ val TOUCH_CORRECTION_DY = SettingsKey(intPreferencesKey("touchCorrectionDy"), 0)
  * the key they aim at. When enabled, every touch on the main keyboard is moved back by that offset
  * before key detection, so the intended key is hit more often. Off by default.
  *
- * The offsets are set with two sliders in the prediction settings, in percent of the key pitch (most
- * common key width/height including the gap). Measured values can also be pushed via adb as
- * getExternalFilesDir(null)/calibration.json, e.g. {"dx": 0, "dy": 10, "enabled": true}; the file is
- * imported into the settings when the next input field starts and then deleted.
+ * The offsets are set with two sliders in the prediction settings, in percent of the most common key
+ * width/height (Keyboard.mMostCommonKeyWidth/Height, the visible key size). Measured values can also
+ * be pushed via adb as getExternalFilesDir(null)/calibration.json, e.g.
+ * {"dx": 0, "dy": 10, "enabled": true}; the file is imported into the settings when the next input
+ * field starts and then deleted.
  *
  * Session replay keeps recording the raw touch stream; the applied shift is stored in each layout event.
  */
 object TouchCorrection {
-    /** Largest offset in either direction, in percent of the key pitch. */
+    /** Largest offset in either direction, in percent of the key size. */
     const val LIMIT_PERCENT = 30
     private const val FILE_NAME = "calibration.json"
 
@@ -41,9 +42,9 @@ object TouchCorrection {
     @Volatile private var dxPercent = 0
     @Volatile private var dyPercent = 0
 
-    /** Key pitch of the last keyboard that was touched, so the settings can show pixels (0 = unknown yet). */
-    @Volatile private var lastPitchX = 0
-    @Volatile private var lastPitchY = 0
+    /** Key size of the last keyboard that was touched, so the settings can show pixels (0 = unknown yet). */
+    @Volatile private var lastKeyWidth = 0
+    @Volatile private var lastKeyHeight = 0
 
     /** Called when an input field starts; picks up the settings and imports a pushed calibration file. */
     @JvmStatic
@@ -91,8 +92,8 @@ object TouchCorrection {
     /** Shift in pixels that is added to every touch on [keyboard], or null when nothing is corrected. */
     @JvmStatic
     fun shiftFor(keyboard: Keyboard): FloatArray? {
-        lastPitchX = keyboard.mMostCommonKeyWidth
-        lastPitchY = keyboard.mMostCommonKeyHeight
+        lastKeyWidth = keyboard.mMostCommonKeyWidth
+        lastKeyHeight = keyboard.mMostCommonKeyHeight
         if (!enabled || (dxPercent == 0 && dyPercent == 0)) return null
         return floatArrayOf(
             -dxPercent / 100f * keyboard.mMostCommonKeyWidth,
@@ -103,8 +104,8 @@ object TouchCorrection {
     /** Slider label: "+12 % ≈ 19 px" once a keyboard has been used, otherwise "+12 %". */
     fun describe(percent: Int, vertical: Boolean): String {
         val sign = if (percent > 0) "+" else ""
-        val pitch = if (vertical) lastPitchY else lastPitchX
-        val pixels = if (pitch > 0 && percent != 0) " ≈ ${(abs(percent) * pitch / 100f).roundToInt()} px" else ""
+        val size = if (vertical) lastKeyHeight else lastKeyWidth
+        val pixels = if (size > 0 && percent != 0) " ≈ ${(abs(percent) * size / 100f).roundToInt()} px" else ""
         return "$sign$percent %$pixels"
     }
 

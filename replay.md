@@ -45,7 +45,7 @@ shows how far a user's touches land from the key they aim at. With the switch on
 main keyboard is moved back by that offset before key detection.
 
 Two sliders below the switch set the offset ("Versatz senkrecht", "Versatz waagerecht") in percent of
-the key pitch (row distance vertically, key distance horizontally), from -30 to +30. Positive means the
+the key height / width (the visible key size, without the gap), from -30 to +30. Positive means the
 user lands below / right of the key centre. The slider label also shows the shift in pixels once the
 keyboard has been used. Tapping the number allows typing an exact value.
 
