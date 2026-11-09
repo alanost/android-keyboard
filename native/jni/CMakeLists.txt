@@ -83,8 +83,12 @@ if(NOT EXT_BUILD)
 
     target_include_directories(jni_latinime PRIVATE ${LATIN_IME_JNI_INCLUDE})
 
+    # The transformer language model on a current llama.cpp, in its own library (see futolm/)
+    add_subdirectory(futolm)
+
     target_link_libraries(jni_latinime
             jni_latinime_common_static
+            futolm
             log
             dl)
 endif()
