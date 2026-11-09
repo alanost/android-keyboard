@@ -477,7 +477,8 @@ public class LanguageModelFacilitator(
             ) {
                 // Check we are on a supported layout
                 if(prevAcceptedLayout != keyboardSwitcher.keyboard) {
-                    if(keyboardSwitcher.keyboard?.mId?.mKeyboardLayoutSetName == "qwerty") {
+                    val layoutName = keyboardSwitcher.keyboard?.mId?.mKeyboardLayoutSetName
+                    if(layoutName == "qwerty" || layoutName == "qwertz") {
                         prevAcceptedLayoutResult = true
                     } else {
                         val letters = keyboardSwitcher.keyboard?.sortedKeys?.filter {
@@ -486,8 +487,12 @@ public class LanguageModelFacilitator(
                             it.x + 10000 * it.y
                         }?.joinToString(separator = "") { it.label.lowercase() } ?: ""
 
+                        // QWERTZ only swaps y and z. Tap positions reach the model as a mix of the keys
+                        // actually under the finger, so the layout difference is small.
                         prevAcceptedLayoutResult = letters == "qwertyuiopasdfghjklzxcvbnm"
+                                || letters == "qwertzuiopasdfghjklyxcvbnm"
                     }
+                    prevAcceptedLayout = keyboardSwitcher.keyboard
                 }
 
                 if(prevAcceptedLayoutResult == false)

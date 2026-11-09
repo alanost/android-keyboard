@@ -27,7 +27,7 @@ Each line is a JSON object with `e` (type) and `t` (`SystemClock.uptimeMillis`, 
 | `layout` | visible key rectangles | `id kw kh pl pt vw vh late keys[[code,label,x,y,w,h]]`, plus `shift[dx,dy]` in px while touch correction is on |
 | `touch` | raw motion event | `src(main/more) a i et dt ox oy ps[{id,x,y,p,s,maj,min,hist[[t,x,y,p]]}]` |
 | `key` | decoded key press and resulting text | `cp kc x y w txt ss se` |
-| `sugg` | suggestions shown | `w auto valid l[[word,score,kind,dict]]` |
+| `sugg` | suggestions shown | `w auto valid lm l[[word,score,kind,dict]]`; `lm` = how many came from the transformer model |
 | `pick` | suggestion tapped | `w to i` |
 | `commit` | word finished | `typed to ct sep txt` |
 | `revert` | autocorrection undone with backspace | `typed to` |

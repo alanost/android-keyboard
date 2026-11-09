@@ -246,8 +246,11 @@ object SessionRecorder {
         }
         val auto = words.mWillAutoCorrect
         val typedValid = words.mTypedWordValid
+        var fromLm = 0
+        for (i in 0 until words.size()) if (words.getInfo(i).mOriginatesFromTransformerLM) fromLm++
         event("sugg") {
             put("w", composing ?: JSONObject.NULL); put("auto", auto); put("valid", typedValid)
+            put("lm", fromLm)
             put("l", list)
         }
     }
