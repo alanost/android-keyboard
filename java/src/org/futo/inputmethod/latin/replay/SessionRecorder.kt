@@ -199,7 +199,8 @@ object SessionRecorder {
             keys.put(JSONArray().put(key.code).put(key.label ?: JSONObject.NULL)
                 .put(key.x).put(key.y).put(key.width).put(key.height))
         }
-        val signature = keys.toString().hashCode()
+        val shift = TouchCorrection.shiftFor(keyboard)
+        val signature = keys.toString().hashCode() * 31 + (shift?.contentHashCode() ?: 0)
         if (signature == s.lastLayout) return
         s.lastLayout = signature
         val id = keyboard.mId?.toString()
@@ -211,6 +212,9 @@ object SessionRecorder {
             put("id", id); put("kw", w); put("kh", h); put("pl", padLeft); put("pt", padTop)
             put("vw", view.width); put("vh", view.height); put("late", pendingFromView)
             put("keys", keys)
+            // Touch correction moves touches by this many pixels before key detection; key events
+            // carry the moved coordinates, touch events the raw ones.
+            if (shift != null) put("shift", JSONArray().put(round(shift[0])).put(round(shift[1])))
         }
     }
 

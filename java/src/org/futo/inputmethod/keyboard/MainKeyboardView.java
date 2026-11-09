@@ -17,6 +17,7 @@
 package org.futo.inputmethod.keyboard;
 
 import org.futo.inputmethod.latin.replay.SessionRecorder;
+import org.futo.inputmethod.latin.replay.TouchCorrection;
 import android.animation.AnimatorInflater;
 import android.animation.ObjectAnimator;
 import android.content.Context;
@@ -704,16 +705,25 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
             return false;
         }
         SessionRecorder.touch(this, event, "main");
-        if (mNonDistinctMultitouchHelper != null) {
-            if (event.getPointerCount() > 1 && mTimerHandler.isInKeyRepeat()) {
-                // Key repeating timer will be canceled if 2 or more keys are in action.
-                mTimerHandler.cancelKeyRepeatTimers();
+        // Personal touch offset correction (off by default); the recorder above keeps the raw touch.
+        final MotionEvent corrected = TouchCorrection.correct(event, getKeyboard(), getWidth(), getHeight());
+        final MotionEvent me = corrected != null ? corrected : event;
+        try {
+            if (mNonDistinctMultitouchHelper != null) {
+                if (me.getPointerCount() > 1 && mTimerHandler.isInKeyRepeat()) {
+                    // Key repeating timer will be canceled if 2 or more keys are in action.
+                    mTimerHandler.cancelKeyRepeatTimers();
+                }
+                // Non distinct multitouch screen support
+                mNonDistinctMultitouchHelper.processMotionEvent(me, mKeyDetector);
+                return true;
             }
-            // Non distinct multitouch screen support
-            mNonDistinctMultitouchHelper.processMotionEvent(event, mKeyDetector);
-            return true;
+            return processMotionEvent(me);
+        } finally {
+            if (corrected != null) {
+                corrected.recycle();
+            }
         }
-        return processMotionEvent(event);
     }
 
     public boolean processMotionEvent(final MotionEvent event) {

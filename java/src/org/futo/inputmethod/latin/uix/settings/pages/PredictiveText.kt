@@ -3,6 +3,7 @@ package org.futo.inputmethod.latin.uix.settings.pages
 import android.content.Intent
 import android.widget.Toast
 import org.futo.inputmethod.latin.replay.SESSION_REPLAY_ENABLED
+import org.futo.inputmethod.latin.replay.TOUCH_CORRECTION_ENABLED
 import org.futo.inputmethod.latin.replay.SessionRecorder
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -45,6 +46,12 @@ val PredictiveTextMenu = UserSettingsMenu(
                 val count = SessionRecorder.deleteAll(nav.context)
                 Toast.makeText(nav.context, nav.context.getString(R.string.replay_deleted_toast, count), Toast.LENGTH_SHORT).show()
             }
+        ),
+
+        userSettingToggleDataStore(
+            title = R.string.touch_correction_title,
+            subtitle = R.string.touch_correction_subtitle,
+            setting = TOUCH_CORRECTION_ENABLED
         ),
 
         userSettingToggleSharedPrefs(

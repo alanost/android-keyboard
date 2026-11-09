@@ -24,7 +24,7 @@ Each line is a JSON object with `e` (type) and `t` (`SystemClock.uptimeMillis`, 
 | `e` | Meaning | Fields |
 |---|---|---|
 | `start` | field opened | `v wall build pkg inputType imeOptions field hint label restarting locale w h dpi land` |
-| `layout` | visible key rectangles | `id kw kh pl pt vw vh late keys[[code,label,x,y,w,h]]` |
+| `layout` | visible key rectangles | `id kw kh pl pt vw vh late keys[[code,label,x,y,w,h]]`, plus `shift[dx,dy]` in px while touch correction is on |
 | `touch` | raw motion event | `src(main/more) a i et dt ox oy ps[{id,x,y,p,s,maj,min,hist[[t,x,y,p]]}]` |
 | `key` | decoded key press and resulting text | `cp kc x y w txt ss se` |
 | `sugg` | suggestions shown | `w auto valid l[[word,score,kind,dict]]` |
@@ -37,3 +37,22 @@ Each line is a JSON object with `e` (type) and `t` (`SystemClock.uptimeMillis`, 
 Files may end without a gzip trailer if the process was killed; readers must tolerate that.
 
 Parse with `tools/replay/replay_extract.py`.
+
+## Touch correction
+
+Optional and off by default (Settings → Text prediction → "Persönliche Trefferkorrektur"). Replay data
+shows how far a user's touches land from the key they aim at. With the switch on, every touch on the
+main keyboard is moved back by that offset before key detection. The offset comes from
+`/sdcard/Android/data/org.futo.inputmethod.latin.unstable/files/calibration.json`, pushed via adb:
+
+```json
+{"dx": 0.0, "dy": 0.1}
+```
+
+Units are the key pitch (most common key width/height including the gap); positive means the user
+lands right of / below the centre; values are clamped to ±0.5. Without the file nothing changes.
+The file is re-read whenever an input field starts.
+
+`touch` events keep the raw coordinates. `key` events carry the moved coordinates, and the layout
+event of each session records the shift in pixels (`shift`), so raw key positions are `x - shift[0]`,
+`y - shift[1]`.

@@ -63,6 +63,7 @@ import org.futo.inputmethod.latin.SuggestedWords.SuggestedWordInfo
 import org.futo.inputmethod.latin.common.Constants
 import org.futo.inputmethod.latin.settings.Settings
 import org.futo.inputmethod.latin.replay.SessionRecorder
+import org.futo.inputmethod.latin.replay.TouchCorrection
 import org.futo.inputmethod.latin.uix.BasicThemeProvider
 import org.futo.inputmethod.latin.uix.DataStoreHelper
 import org.futo.inputmethod.latin.uix.DynamicThemeProvider
@@ -630,6 +631,7 @@ class LatinIME : InputMethodServiceCompose(), LatinIMELegacy.SuggestionStripCont
         onSizeMaybeUpdated()
         imeManager.onStartInput()
         latinIMELegacy.onStartInputView(info, restarting)
+        TouchCorrection.reload(this)
         SessionRecorder.startSession(this, info, restarting, RichInputMethodManager.getInstance().currentSubtypeLocale?.toString())
         latinIMELegacy.mKeyboardSwitcher?.mainKeyboardView?.let { view ->
             view.keyboard?.let { SessionRecorder.layout(view, it, true) }
