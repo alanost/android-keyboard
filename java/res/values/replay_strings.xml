@@ -6,5 +6,9 @@
     <string name="replay_delete_subtitle" translatable="false">Entfernt alle gespeicherten Sitzungen sofort von diesem Gerät.</string>
     <string name="replay_deleted_toast" translatable="false">%1$d Aufzeichnungen gelöscht</string>
     <string name="touch_correction_title" translatable="false">Persönliche Trefferkorrektur</string>
-    <string name="touch_correction_subtitle" translatable="false">Verschiebt jeden Tipp um deinen gemessenen Versatz, bevor die Taste erkannt wird. Die Werte kommen aus der Datei calibration.json (per adb). Ohne Datei ändert sich nichts. Die Aufzeichnung speichert weiter die echten Koordinaten.</string>
+    <string name="touch_correction_subtitle" translatable="false">Verschiebt jeden Tipp um deinen Versatz, bevor die Taste erkannt wird. Die Werte stellst du darunter ein. Die Aufzeichnung speichert weiter die echten Koordinaten.</string>
+    <string name="touch_correction_dy_title" translatable="false">Versatz senkrecht</string>
+    <string name="touch_correction_dy_subtitle" translatable="false">Wie weit du unter (+) oder über (−) der Tastenmitte tippst, in Prozent des Reihenabstands. Die Tastatur gleicht das aus.</string>
+    <string name="touch_correction_dx_title" translatable="false">Versatz waagerecht</string>
+    <string name="touch_correction_dx_subtitle" translatable="false">Wie weit du rechts (+) oder links (−) neben der Tastenmitte tippst, in Prozent des Tastenabstands.</string>
 </resources>

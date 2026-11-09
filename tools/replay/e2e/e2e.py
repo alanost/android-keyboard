@@ -72,7 +72,7 @@ def tap_text(pattern, tries=8):
 
 
 def open_prediction_settings():
-    shell(f"am start -n {SETTINGS}")
+    shell(f"am start -n {SETTINGS} -f 0x10008000")   # NEW_TASK | CLEAR_TASK: always a fresh, unscrolled page
     time.sleep(4)
     notice = find_text(r"^dismiss$|^schlie.en$|^verwerfen$")
     if notice:
@@ -226,12 +226,13 @@ pull_dir = f"{art}/pulled"
 r = subprocess.run([os.path.join(os.path.dirname(__file__), "..", "pull.sh"), pull_dir], capture_output=True, text=True)
 ok(r.returncode == 0 and glob.glob(f"{pull_dir}/**/*.jsonl.gz", recursive=True), "pull.sh holt die Dateien ohne Root")
 
-# Touch correction: a tap in the upper half of the second row belongs to the first row once the
-# calibration says the user lands that far below the key centre.
+# Touch correction: a tap in the upper part of the second row belongs to the first row once the
+# settings say the user lands that far below the key centre.
 _, _, wx, wy, ww, wh = rects[ord("w")]
 _, _, ax, ay, aw, ah = rects[ord("a")]
 pitch = ay - wy
-tx, ty = px + wx + int(ww * 0.3), py + wy + wh // 2 + int(pitch * 0.75)
+tx, ty = px + wx + int(ww * 0.3), py + wy + wh // 2 + int(pitch * 0.65)
+calibration = REMOTE.rsplit("/", 1)[0] + "/calibration.json"
 
 
 def tap_once():
@@ -246,19 +247,35 @@ def tap_once():
             next((e for e in ev if e["e"] == "layout"), {}))
 
 
+def visible(pattern, tries=6):
+    for _ in range(tries):
+        if find_text(pattern):
+            return True
+        shell(f"input swipe {width // 2} {height * 3 // 4} {width // 2} {height // 3} 300")
+        time.sleep(1)
+    return False
+
+
 hit, lay = tap_once()
 ok(hit[:1] not in ([], ["w"]) and "shift" not in lay, f"Ohne Trefferkorrektur trifft der Tipp die zweite Reihe ({hit})")
-cal = f"{art}/calibration.json"
-open(cal, "w").write('{"dx": 0, "dy": 0.45}')
-adb("push", cal, REMOTE.rsplit("/", 1)[0] + "/calibration.json")
 open_prediction_settings()
 tap_text(r"Trefferkorrektur")
+ok(visible(r"Versatz senkrecht"), "Nach dem Einschalten erscheinen die Regler")
 snap("correction_enabled")
 shell("input keyevent KEYCODE_HOME")
 time.sleep(1)
+cal = f"{art}/calibration.json"
+open(cal, "w").write('{"dy": 30}')
+adb("push", cal, calibration)
 hit, lay = tap_once()
 ok(hit[:1] == ["w"] and lay.get("shift", [0, 0])[1] < 0,
    f"Mit Trefferkorrektur wird derselbe Tipp zu 'w' ({hit}, shift={lay.get('shift')})")
+ok(not shell(f"ls {calibration} 2>/dev/null", check=False).strip(), "calibration.json wird übernommen und entfernt")
+open_prediction_settings()
+ok(visible(r"\+30 %"), "Der Regler zeigt den übernommenen Wert")
+snap("correction_slider")
+shell("input keyevent KEYCODE_HOME")
+time.sleep(1)
 
 open_prediction_settings()
 tap_text(r"Aufzeichnungen l")

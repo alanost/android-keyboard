@@ -3,7 +3,10 @@ package org.futo.inputmethod.latin.uix.settings.pages
 import android.content.Intent
 import android.widget.Toast
 import org.futo.inputmethod.latin.replay.SESSION_REPLAY_ENABLED
+import org.futo.inputmethod.latin.replay.TOUCH_CORRECTION_DX
+import org.futo.inputmethod.latin.replay.TOUCH_CORRECTION_DY
 import org.futo.inputmethod.latin.replay.TOUCH_CORRECTION_ENABLED
+import org.futo.inputmethod.latin.replay.TouchCorrection
 import org.futo.inputmethod.latin.replay.SessionRecorder
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -13,15 +16,40 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import org.futo.inputmethod.latin.R
 import org.futo.inputmethod.latin.settings.Settings
+import org.futo.inputmethod.latin.uix.SettingsKey
 import org.futo.inputmethod.latin.uix.USE_TRANSFORMER_FINETUNING
 import org.futo.inputmethod.latin.uix.settings.NavigationItemStyle
+import org.futo.inputmethod.latin.uix.settings.SettingSlider
 import org.futo.inputmethod.latin.uix.settings.Tip
+import org.futo.inputmethod.latin.uix.settings.UserSetting
 import org.futo.inputmethod.latin.uix.settings.UserSettingsMenu
+import org.futo.inputmethod.latin.uix.settings.useDataStoreValue
 import org.futo.inputmethod.latin.uix.settings.useSharedPrefsBool
 import org.futo.inputmethod.latin.uix.settings.userSettingDecorationOnly
 import org.futo.inputmethod.latin.uix.settings.userSettingNavigationItem
 import org.futo.inputmethod.latin.uix.settings.userSettingToggleDataStore
 import org.futo.inputmethod.latin.uix.settings.userSettingToggleSharedPrefs
+import kotlin.math.roundToInt
+
+private val visibilityCheckTouchCorrection = @Composable {
+    useDataStoreValue(TOUCH_CORRECTION_ENABLED)
+}
+
+private fun touchCorrectionSlider(title: Int, subtitle: Int, setting: SettingsKey<Int>, vertical: Boolean) = UserSetting(
+    name = title,
+    subtitle = subtitle,
+    visibilityCheck = visibilityCheckTouchCorrection,
+) {
+    val limit = TouchCorrection.LIMIT_PERCENT.toFloat()
+    SettingSlider(
+        title = stringResource(title),
+        subtitle = stringResource(subtitle),
+        setting = setting,
+        range = -limit..limit,
+        transform = { it.roundToInt() },
+        indicator = { TouchCorrection.describe(it, vertical) },
+    )
+}
 
 private val visibilityCheckLMEnabled = @Composable {
     useSharedPrefsBool(Settings.PREF_KEY_USE_TRANSFORMER_LM, true).value
@@ -53,6 +81,8 @@ val PredictiveTextMenu = UserSettingsMenu(
             subtitle = R.string.touch_correction_subtitle,
             setting = TOUCH_CORRECTION_ENABLED
         ),
+        touchCorrectionSlider(R.string.touch_correction_dy_title, R.string.touch_correction_dy_subtitle, TOUCH_CORRECTION_DY, vertical = true),
+        touchCorrectionSlider(R.string.touch_correction_dx_title, R.string.touch_correction_dx_subtitle, TOUCH_CORRECTION_DX, vertical = false),
 
         userSettingToggleSharedPrefs(
             title = R.string.prediction_settings_transformer,

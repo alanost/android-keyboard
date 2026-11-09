@@ -3,36 +3,49 @@ package org.futo.inputmethod.latin.replay
 import android.content.Context
 import android.view.MotionEvent
 import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.intPreferencesKey
 import org.futo.inputmethod.keyboard.Keyboard
 import org.futo.inputmethod.latin.uix.SettingsKey
 import org.futo.inputmethod.latin.uix.getSettingBlocking
 import org.futo.inputmethod.latin.uix.isDirectBootUnlocked
+import org.futo.inputmethod.latin.uix.setSettingBlocking
 import org.json.JSONObject
 import java.io.File
+import kotlin.math.abs
+import kotlin.math.roundToInt
 
 val TOUCH_CORRECTION_ENABLED = SettingsKey(booleanPreferencesKey("touchCorrectionEnabled"), false)
+
+/** How far the user lands from the key centre, in percent of the key pitch; positive = right of / below. */
+val TOUCH_CORRECTION_DX = SettingsKey(intPreferencesKey("touchCorrectionDx"), 0)
+val TOUCH_CORRECTION_DY = SettingsKey(intPreferencesKey("touchCorrectionDy"), 0)
 
 /**
  * Personal touch offset correction. Session-replay data shows how far a user's touches land from
  * the key they aim at. When enabled, every touch on the main keyboard is moved back by that offset
  * before key detection, so the intended key is hit more often. Off by default.
  *
- * The offset is read from getExternalFilesDir(null)/calibration.json, written via adb:
- *     {"dx": 0.0, "dy": 0.1}
- * in units of the key pitch (most common key width/height including the gap), positive meaning the
- * user lands right of / below the key centre. Without the file nothing changes.
+ * The offsets are set with two sliders in the prediction settings, in percent of the key pitch (most
+ * common key width/height including the gap). Measured values can also be pushed via adb as
+ * getExternalFilesDir(null)/calibration.json, e.g. {"dx": 0, "dy": 10, "enabled": true}; the file is
+ * imported into the settings when the next input field starts and then deleted.
  *
  * Session replay keeps recording the raw touch stream; the applied shift is stored in each layout event.
  */
 object TouchCorrection {
-    private const val LIMIT = 0.5f
+    /** Largest offset in either direction, in percent of the key pitch. */
+    const val LIMIT_PERCENT = 30
+    private const val FILE_NAME = "calibration.json"
 
     @Volatile private var enabled = false
-    @Volatile private var dxPitch = 0f
-    @Volatile private var dyPitch = 0f
-    @Volatile private var fileStamp = Long.MIN_VALUE
+    @Volatile private var dxPercent = 0
+    @Volatile private var dyPercent = 0
 
-    /** Called when an input field starts; picks up the setting and a changed calibration file. */
+    /** Key pitch of the last keyboard that was touched, so the settings can show pixels (0 = unknown yet). */
+    @Volatile private var lastPitchX = 0
+    @Volatile private var lastPitchY = 0
+
+    /** Called when an input field starts; picks up the settings and imports a pushed calibration file. */
     @JvmStatic
     fun reload(context: Context) {
         // Before the first unlock neither the settings nor external storage can be read.
@@ -40,33 +53,59 @@ object TouchCorrection {
             enabled = false
             return
         }
-        enabled = context.getSettingBlocking(TOUCH_CORRECTION_ENABLED)
-        val dir = context.getExternalFilesDir(null) ?: return
-        val file = File(dir, "calibration.json")
-        val stamp = if (file.isFile) file.lastModified() else 0L
-        if (stamp == fileStamp) return
-        fileStamp = stamp
-        var dx = 0f
-        var dy = 0f
-        if (stamp != 0L) {
+        var on = context.getSettingBlocking(TOUCH_CORRECTION_ENABLED)
+        var dx = context.getSettingBlocking(TOUCH_CORRECTION_DX)
+        var dy = context.getSettingBlocking(TOUCH_CORRECTION_DY)
+
+        val file = context.getExternalFilesDir(null)?.let { File(it, FILE_NAME) }
+        if (file != null && file.isFile) {
+            // The settings cache updates asynchronously, so this session uses the imported values directly.
             try {
                 val json = JSONObject(file.readText())
-                dx = json.optDouble("dx", 0.0).toFloat()
-                dy = json.optDouble("dy", 0.0).toFloat()
-                if (dx.isNaN() || dy.isNaN()) { dx = 0f; dy = 0f }
+                if (json.has("dx")) {
+                    dx = clampPercent(json.getDouble("dx"))
+                    context.setSettingBlocking(TOUCH_CORRECTION_DX.key, dx)
+                }
+                if (json.has("dy")) {
+                    dy = clampPercent(json.getDouble("dy"))
+                    context.setSettingBlocking(TOUCH_CORRECTION_DY.key, dy)
+                }
+                if (json.has("enabled")) {
+                    on = json.getBoolean("enabled")
+                    context.setSettingBlocking(TOUCH_CORRECTION_ENABLED.key, on)
+                }
             } catch (_: Exception) {
-                dx = 0f; dy = 0f
+                // Unreadable file: the settings stay as they are.
             }
+            file.delete()   // consumed: from now on the sliders own the values
         }
-        dxPitch = dx.coerceIn(-LIMIT, LIMIT)
-        dyPitch = dy.coerceIn(-LIMIT, LIMIT)
+
+        enabled = on
+        dxPercent = dx.coerceIn(-LIMIT_PERCENT, LIMIT_PERCENT)
+        dyPercent = dy.coerceIn(-LIMIT_PERCENT, LIMIT_PERCENT)
     }
+
+    private fun clampPercent(value: Double): Int =
+        if (value.isNaN()) 0 else value.roundToInt().coerceIn(-LIMIT_PERCENT, LIMIT_PERCENT)
 
     /** Shift in pixels that is added to every touch on [keyboard], or null when nothing is corrected. */
     @JvmStatic
     fun shiftFor(keyboard: Keyboard): FloatArray? {
-        if (!enabled || (dxPitch == 0f && dyPitch == 0f)) return null
-        return floatArrayOf(-dxPitch * keyboard.mMostCommonKeyWidth, -dyPitch * keyboard.mMostCommonKeyHeight)
+        lastPitchX = keyboard.mMostCommonKeyWidth
+        lastPitchY = keyboard.mMostCommonKeyHeight
+        if (!enabled || (dxPercent == 0 && dyPercent == 0)) return null
+        return floatArrayOf(
+            -dxPercent / 100f * keyboard.mMostCommonKeyWidth,
+            -dyPercent / 100f * keyboard.mMostCommonKeyHeight
+        )
+    }
+
+    /** Slider label: "+12 % ≈ 19 px" once a keyboard has been used, otherwise "+12 %". */
+    fun describe(percent: Int, vertical: Boolean): String {
+        val sign = if (percent > 0) "+" else ""
+        val pitch = if (vertical) lastPitchY else lastPitchX
+        val pixels = if (pitch > 0 && percent != 0) " ≈ ${(abs(percent) * pitch / 100f).roundToInt()} px" else ""
+        return "$sign$percent %$pixels"
     }
 
     /**

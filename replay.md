@@ -42,16 +42,22 @@ Parse with `tools/replay/replay_extract.py`.
 
 Optional and off by default (Settings → Text prediction → "Persönliche Trefferkorrektur"). Replay data
 shows how far a user's touches land from the key they aim at. With the switch on, every touch on the
-main keyboard is moved back by that offset before key detection. The offset comes from
-`/sdcard/Android/data/org.futo.inputmethod.latin.unstable/files/calibration.json`, pushed via adb:
+main keyboard is moved back by that offset before key detection.
 
-```json
-{"dx": 0.0, "dy": 0.1}
+Two sliders below the switch set the offset ("Versatz senkrecht", "Versatz waagerecht") in percent of
+the key pitch (row distance vertically, key distance horizontally), from -30 to +30. Positive means the
+user lands below / right of the key centre. The slider label also shows the shift in pixels once the
+keyboard has been used. Tapping the number allows typing an exact value.
+
+Measured values can be pushed via adb instead of moving the sliders:
+
+```sh
+echo '{"dx": 0, "dy": 10, "enabled": true}' > calibration.json
+adb push calibration.json /sdcard/Android/data/org.futo.inputmethod.latin.unstable/files/
 ```
 
-Units are the key pitch (most common key width/height including the gap); positive means the user
-lands right of / below the centre; values are clamped to ±0.5. Without the file nothing changes.
-The file is re-read whenever an input field starts.
+All three fields are optional. The file is imported into the settings when the next input field starts
+and is then deleted, so the sliders always show the active values.
 
 `touch` events keep the raw coordinates. `key` events carry the moved coordinates, and the layout
 event of each session records the shift in pixels (`shift`), so raw key positions are `x - shift[0]`,
